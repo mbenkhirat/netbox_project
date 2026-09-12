@@ -1,0 +1,94 @@
+---
+- name: Align FortiGate hostname with NetBox device name
+  hosts: device_roles_fw
+  connection: httpapi
+  gather_facts: no
+  collections:
+    - fortinet.fortios
+  vars:
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: false
+    ansible_httpapi_port: 443
+    ansible_network_os: fortinet.fortios.fortios
+    vdom: "root"
+    reports_dir: "/home/mbenkhirat/ansible-projects/forti-upgrade/reports/sync_hostname"
+
+  tasks:
+    - name: Gather local system date
+      ansible.builtin.setup:
+        filter:
+          - "ansible_date_time"
+      delegate_to: localhost
+
+    - name: Ensure the reports folder exists
+      ansible.builtin.file:
+        path: "{{ reports_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Get current system status (hostname actuel)
+      fortinet.fortios.fortios_monitor_fact:
+        vdom: "{{ vdom }}"
+        access_token: "{{ fortios_token }}"
+        selector: "system_status"
+      register: fg_status
+
+    - name: Déterminer les valeurs à comparer
+      ansible.builtin.set_fact:
+        netbox_hostname: "{{ inventory_hostname }}"
+        current_hostname: "{{ fg_status.meta.results.hostname }}"
+
+    - name: Corriger le hostname sur le FortiGate
+      fortinet.fortios.fortios_system_global:
+        vdom: "{{ vdom }}"
+        access_token: "{{ fortios_token }}"
+        system_global:
+          hostname: "{{ netbox_hostname }}"
+      when: current_hostname != netbox_hostname
+      register: hostname_update
+      ignore_errors: true
+
+    - name: Définir le statut de synchronisation (mis à jour)
+      ansible.builtin.set_fact:
+        sync_status: "✅ Corrigé ({{ current_hostname }} → {{ netbox_hostname }})"
+      when: current_hostname != netbox_hostname and hostname_update is success
+
+    - name: Définir le statut de synchronisation (échec)
+      ansible.builtin.set_fact:
+        sync_status: "❌ Échec de la correction ({{ current_hostname }} → {{ netbox_hostname }})"
+      when: current_hostname != netbox_hostname and hostname_update is failed
+
+    - name: Définir le statut de synchronisation (déjà cohérent)
+      ansible.builtin.set_fact:
+        sync_status: "➖ Déjà cohérent ({{ current_hostname }})"
+      when: current_hostname == netbox_hostname
+
+    - name: Build the report content
+      ansible.builtin.set_fact:
+        report_content: |
+          ==================================================
+                  HOSTNAME SYNC REPORT (NetBox → FortiGate)
+                   Date: {{ ansible_facts['date_time']['date'] }} {{ ansible_facts['date_time']['time'] }}
+          ==================================================
+          {% for host in ansible_play_hosts %}
+            • {{ "%-25s" | format(host) }} : {{ hostvars[host]['sync_status'] | default('❓ Inconnu') }}
+          {% endfor %}
+          ==================================================
+      delegate_to: localhost
+      run_once: true
+
+    - name: Display the report in the logs
+      ansible.builtin.debug:
+        msg: "{{ report_content }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Save the report to a timestamped file
+      ansible.builtin.copy:
+        content: "{{ report_content }}"
+        dest: "{{ reports_dir }}/sync_hostname_report_{{ ansible_facts['date_time']['date'] }}_{{ ansible_facts['date_time']['time'] | replace(':','') }}.txt"
+        mode: '0644'
+      delegate_to: localhost
+      run_once: true

@@ -1,0 +1,25 @@
+---
+- name: Get FortiGate system status
+  hosts: device_roles_fw
+  connection: httpapi
+  gather_facts: no
+  collections:
+    - fortinet.fortios
+  vars:
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: false
+    ansible_httpapi_port: 443
+    ansible_network_os: fortinet.fortios.fortios
+    vdom: "root"
+
+  tasks:
+    - name: Retrieve system status
+      fortinet.fortios.fortios_monitor_fact:
+        vdom: "{{ vdom }}"
+        access_token: "{{ fortios_token }}"
+        selector: "system_status"
+      register: fg_status
+
+    - name: Display result
+      debug:
+        var: fg_status.meta.results
