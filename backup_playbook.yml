@@ -4,8 +4,8 @@
   gather_facts: false
   vars:
     fortios_access_token: "{{ fortios_token }}"
-    local_backup_dir: "/home/mbenkhirat/ansible-projects/forti-upgrade/fortigate_local_backups"
-    reports_dir: "/home/mbenkhirat/ansible-projects/forti-upgrade/fortigate_backup_reports"
+    local_backup_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/local_backups"
+    reports_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/backup_reports"
     retention_days: 90
 
   tasks:

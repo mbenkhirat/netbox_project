@@ -19,6 +19,7 @@
         access_token: "{{ fortios_token }}"
         selector: "system_status"
       register: fg_status
+      
 
     - name: Display result
       debug:
