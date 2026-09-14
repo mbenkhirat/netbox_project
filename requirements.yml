@@ -1,0 +1,6 @@
+---
+collections:
+  - name: netbox.netbox
+    version: ">=3.20.0"
+  - name: fortinet.fortios
+    version: ">=2.3.0"
