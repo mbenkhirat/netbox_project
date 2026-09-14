@@ -15,13 +15,13 @@ jobs:
 
       - name: Install/update Python dependencies
         run: |
-        #  source ~/ansible-projects/venv/bin/activate
-        #  pip install -r requirements.txt
+          source ~/ansible-projects/venv/bin/activate
+          pip install -r requirements.txt
 
-      #- name: Install Ansible collections
-       # run: |
-        #  source ~/ansible-projects/venv/bin/activate
-        #  ansible-galaxy collection install -r requirements.yml
+      - name: Install Ansible collections
+        run: |
+          source ~/ansible-projects/venv/bin/activate
+          ansible-galaxy collection install -r requirements.yml
 
       - name: Write vault password
         run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .vault_pass
@@ -29,7 +29,7 @@ jobs:
       - name: Run backup playbook
         run: |
           source ~/ansible-projects/venv/bin/activate
-          ansible-playbook -i netbox.inventory.yml new_backup_playbook.yml #--vault-password-file .vault_pass
+          ansible-playbook -i netbox_inventory.yml new_backup_playbook.yml --vault-password-file .vault_pass
 
       - name: Cleanup vault password
         if: always()
@@ -41,6 +41,6 @@ jobs:
         with:
           name: fortigate-backups-${{ github.run_number }}
           path: |
-            backup_project/local_backups/
-            backup_project/backup_reports/
+            local_backups/
+            backup_reports/
           retention-days: 90
