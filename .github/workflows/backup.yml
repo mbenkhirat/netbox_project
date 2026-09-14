@@ -41,6 +41,6 @@ jobs:
         with:
           name: fortigate-backups-${{ github.run_number }}
           path: |
-            local_backups/
-            backup_reports/
+            /home/mbenkhirat/ansible-projects/forti-automation/netbox_project/local_backups/
+            /home/mbenkhirat/ansible-projects/forti-automation/netbox_project/backup_reports/
           retention-days: 90
