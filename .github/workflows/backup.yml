@@ -29,7 +29,7 @@ jobs:
       - name: Run backup playbook
         run: |
           source ~/ansible-projects/venv/bin/activate
-          ansible-playbook -i netbox_inventory.yml new_backup_playbook.yml --vault-password-file .vault_pass
+          ansible-playbook -i netbox_inventory.yml new01_backup_playbook.yml --vault-password-file .vault_pass
 
       - name: Cleanup vault password
         if: always()
