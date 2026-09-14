@@ -29,18 +29,18 @@ jobs:
       - name: Run backup playbook
         run: |
           source ~/ansible-projects/venv/bin/activate
-          ansible-playbook -i netbox_inventory.yml new01_backup_playbook.yml --vault-password-file .vault_pass
+          ansible-playbook -i netbox_inventory.yml backup_playbook.yml --vault-password-file .vault_pass
 
       - name: Cleanup vault password
         if: always()
         run: rm -f .vault_pass
 
-      # - name: Upload backup artifacts
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: fortigate-backups-${{ github.run_number }}
-      #     path: |
-      #       local_backups/
-      #       backup_reports/
-      #     retention-days: 90
+      - name: Upload backup artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fortigate-backups-${{ github.run_number }}
+          path: |
+            local_backups/
+            backup_reports/
+          retention-days: 90

@@ -1,12 +1,12 @@
 ---
-- name: Multi-Device FortiGate Backup and Retention
+- name: Multi-Device FortiGate Backup and Retention (NetBox-driven)
   hosts: device_roles_fw
   gather_facts: false
   vars:
     fortios_access_token: "{{ fortios_token }}"
     local_backup_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/local_backups"
     reports_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/backup_reports"
-    retention_days: 90
+    retention_days: 90  # 3-month retention (~90 days)
 
   tasks:
     - name: Gather local system date
@@ -43,7 +43,7 @@
         timeout: 30
       register: config_backup_raw
       delegate_to: localhost
-      ignore_errors: true
+      ignore_errors: true  # Prevents one device's failure from blocking the whole run
       no_log: true
 
     - name: Set backup status (Success)
@@ -70,7 +70,9 @@
       when: config_backup_raw is success
       no_log: true
 
-    - name: Find local backups older than 90 days
+    # --- Global Retention / Cleanup Tasks ---
+
+    - name: Find local backups older than 90 days (across all subfolders)
       ansible.builtin.find:
         paths: "{{ local_backup_dir }}"
         patterns: "*.conf"
@@ -95,6 +97,8 @@
         msg: "{{ old_backups.matched }} backup file(s) older than {{ retention_days }} days deleted."
       delegate_to: localhost
       run_once: true
+
+    # --- Final Execution Report ---
 
     - name: Build the report content
       ansible.builtin.set_fact:
