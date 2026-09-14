@@ -1,0 +1,129 @@
+---
+- name: Multi-Device FortiGate Backup and Retention (NetBox-driven)
+  hosts: device_roles_fw
+  gather_facts: false
+  vars:
+    fortios_access_token: "{{ fortios_token }}"
+    local_backup_dir: "{{ playbook_dir }}/local_backups"
+    reports_dir: "{{ playbook_dir }}/backup_reports"
+    retention_days: 90  # 3-month retention (~90 days)
+
+  tasks:
+    - name: Gather local system date
+      ansible.builtin.setup:
+        filter:
+          - "ansible_date_time"
+      delegate_to: localhost
+
+    - name: Ensure the device-specific backup folder exists
+      ansible.builtin.file:
+        path: "{{ local_backup_dir }}/{{ inventory_hostname }}"
+        state: directory
+        mode: '0700'
+      delegate_to: localhost
+
+    - name: Ensure the reports folder exists
+      ansible.builtin.file:
+        path: "{{ reports_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Download the configuration via the FortiOS API (POST)
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/api/v2/monitor/system/config/backup?scope=global"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ fortios_access_token }}"
+        body_format: json
+        validate_certs: false
+        status_code: 200
+        return_content: true
+        timeout: 30
+      register: config_backup_raw
+      delegate_to: localhost
+      ignore_errors: true  # Prevents one device's failure from blocking the whole run
+      no_log: true
+
+    - name: Set backup status (Success)
+      ansible.builtin.set_fact:
+        backup_status: "✅ Success"
+      when: config_backup_raw is success
+
+    - name: Set backup status (Failed)
+      ansible.builtin.set_fact:
+        backup_status: "❌ Failed"
+      when: config_backup_raw is failed
+
+    - name: Define the local backup filename (timestamped per host)
+      ansible.builtin.set_fact:
+        local_backup_filename: "{{ inventory_hostname }}_{{ ansible_facts['date_time']['date'] }}_{{ ansible_facts['date_time']['time'] | replace(':','') }}.conf"
+      when: config_backup_raw is success
+
+    - name: Write the backup to the device's dedicated folder
+      ansible.builtin.copy:
+        content: "{{ config_backup_raw.content }}"
+        dest: "{{ local_backup_dir }}/{{ inventory_hostname }}/{{ local_backup_filename }}"
+        mode: '0600'
+      delegate_to: localhost
+      when: config_backup_raw is success
+      no_log: true
+
+    # --- Global Retention / Cleanup Tasks ---
+
+    - name: Find local backups older than 90 days (across all subfolders)
+      ansible.builtin.find:
+        paths: "{{ local_backup_dir }}"
+        patterns: "*.conf"
+        age: "{{ retention_days }}d"
+        recurse: true
+        file_type: file
+      register: old_backups
+      delegate_to: localhost
+      run_once: true
+
+    - name: Delete outdated backups
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+      when: old_backups.matched > 0
+      delegate_to: localhost
+      run_once: true
+
+    - name: Display cleanup summary
+      ansible.builtin.debug:
+        msg: "{{ old_backups.matched }} backup file(s) older than {{ retention_days }} days deleted."
+      delegate_to: localhost
+      run_once: true
+
+    # --- Final Execution Report ---
+
+    - name: Build the report content
+      ansible.builtin.set_fact:
+        report_content: |
+          ==================================================
+                       FORTIGATE BACKUP REPORT
+                   Date: {{ ansible_facts['date_time']['date'] }} {{ ansible_facts['date_time']['time'] }}
+          ==================================================
+          {% for host in ansible_play_hosts %}
+            • {{ "%-25s" | format(host) }} : {{ hostvars[host]['backup_status'] | default('❓ Unknown') }}
+          {% endfor %}
+          ==================================================
+      delegate_to: localhost
+      run_once: true
+
+    - name: Display the report in the logs
+      ansible.builtin.debug:
+        msg: "{{ report_content }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Save the report to a timestamped file
+      ansible.builtin.copy:
+        content: "{{ report_content }}"
+        dest: "{{ reports_dir }}/backup_report_{{ ansible_facts['date_time']['date'] }}_{{ ansible_facts['date_time']['time'] | replace(':','') }}.txt"
+        mode: '0644'
+      delegate_to: localhost
+      run_once: true

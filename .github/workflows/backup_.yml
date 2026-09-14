@@ -1,0 +1,47 @@
+name: FortiGate Backup (NetBox-driven)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 2 * * *"   # tous les jours à 2h du matin (UTC)
+
+jobs:
+  backup:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python venv
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Install Ansible collections
+        run: |
+          source .venv/bin/activate
+          ansible-galaxy collection install -r requirements.yml
+
+      - name: Write vault password
+        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .vault_pass
+
+      - name: Run backup playbook
+        run: |
+          source .venv/bin/activate
+          ansible-playbook -i netbox.inventory.yml backup_playbook --vault-password-file .vault_pass
+
+      - name: Cleanup vault password
+        if: always()
+        run: rm -f .vault_pass
+
+      - name: Upload backup artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fortigate-backups-${{ github.run_number }}
+          path: |
+            netbox_project/local_backups/
+            netbox_project/backup_reports/
+          retention-days: 90
