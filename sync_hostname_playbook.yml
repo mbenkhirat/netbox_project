@@ -11,7 +11,7 @@
     ansible_httpapi_port: 443
     ansible_network_os: fortinet.fortios.fortios
     vdom: "root"
-    reports_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/sync_hostname_reports"
+    reports_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/backup_reports/sync_hostname"
 
   tasks:
     - name: Gather local system date
@@ -34,11 +34,13 @@
         access_token: "{{ fortios_token }}"
         selector: "system_status"
       register: fg_status
+      ignore_errors: true
 
     - name: Déterminer les valeurs à comparer
       ansible.builtin.set_fact:
         netbox_hostname: "{{ inventory_hostname }}"
         current_hostname: "{{ fg_status.meta.results.hostname }}"
+      when: fg_status is success
 
     - name: Corriger le hostname sur le FortiGate
       fortinet.fortios.fortios_system_global:
@@ -46,24 +48,29 @@
         access_token: "{{ fortios_token }}"
         system_global:
           hostname: "{{ netbox_hostname }}"
-      when: current_hostname != netbox_hostname
+      when: fg_status is success and current_hostname != netbox_hostname
       register: hostname_update
       ignore_errors: true
 
     - name: Définir le statut de synchronisation (mis à jour)
       ansible.builtin.set_fact:
         sync_status: "✅ Corrigé ({{ current_hostname }} → {{ netbox_hostname }})"
-      when: current_hostname != netbox_hostname and hostname_update is success
+      when: fg_status is success and current_hostname != netbox_hostname and hostname_update is success
 
-    - name: Définir le statut de synchronisation (échec)
+    - name: Définir le statut de synchronisation (échec correction)
       ansible.builtin.set_fact:
         sync_status: "❌ Échec de la correction ({{ current_hostname }} → {{ netbox_hostname }})"
-      when: current_hostname != netbox_hostname and hostname_update is failed
+      when: fg_status is success and current_hostname != netbox_hostname and hostname_update is failed
 
     - name: Définir le statut de synchronisation (déjà cohérent)
       ansible.builtin.set_fact:
         sync_status: "➖ Déjà cohérent ({{ current_hostname }})"
-      when: current_hostname == netbox_hostname
+      when: fg_status is success and current_hostname == netbox_hostname
+
+    - name: Définir le statut de synchronisation (équipement injoignable)
+      ansible.builtin.set_fact:
+        sync_status: "🔴 Injoignable ({{ fg_status.msg | default('erreur de connexion') }})"
+      when: fg_status is failed
 
     - name: Build the report content
       ansible.builtin.set_fact:
