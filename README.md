@@ -1,6 +1,6 @@
-# NetBox & Ansible Project — NetBox as Source of Truth for Ansible
+# NetBox as SoT — Dynamic Ansible Inventory for Network Automation
 
-This project uses **NetBox** as the Source of Truth to drive configuration and operations on networks devices (**Ex :FortiGate firewalls**), via **Ansible**. The device inventory is not managed manually — it's dynamically retrieved from NetBox on every run.
+This project demonstrates using **NetBox as the Source of Truth (SoT)** to drive network automation via **Ansible**, through a **dynamic inventory** mechanism. Rather than maintaining a static device list, Ansible queries NetBox on every run to pull the up-to-date inventory — devices, sites, roles — directly from the authoritative network database. The current implementation targets **FortiGate** firewalls via the FortiOS REST API, but the architecture (NetBox → dynamic inventory → playbooks) is designed to extend to other device types.
 
 ## Architecture
 
