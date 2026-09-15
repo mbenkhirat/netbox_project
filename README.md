@@ -1,6 +1,6 @@
-# NetBox Project — NetBox as Source of Truth for FortiGate
+# NetBox & Ansible Project — NetBox as Source of Truth for Ansible
 
-This project uses **NetBox** as the Source of Truth to drive configuration and operations on **FortiGate** firewalls, via **Ansible**. The device inventory is not managed manually — it's dynamically retrieved from NetBox on every run.
+This project uses **NetBox** as the Source of Truth to drive configuration and operations on networks devices (**Ex :FortiGate firewalls**), via **Ansible**. The device inventory is not managed manually — it's dynamically retrieved from NetBox on every run.
 
 ## Architecture
 
