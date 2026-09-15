@@ -35,7 +35,7 @@ GitHub Actions (CI/CD, runner self-hosted)
 ## Installation
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/mbenkhirat/netbox_project.git
 cd netbox_project
 
 python3.12 -m venv venv
@@ -82,17 +82,21 @@ fortios_token: "nbt_xxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 ```
 netbox_project/
-├── .github/workflows/         # Pipelines CI/CD GitHub Actions
-├── backup_reports/            # Rapports de backup horodatés (généré, non versionné)
-├── local_backups/             # Sauvegardes de configuration par device (généré, non versionné)
-├── group_vars/all/vault.yml   # Secrets chiffrés (token FortiOS, identifiants SSH)
-├── netbox_inventory.yml       # Inventaire dynamique NetBox (token NetBox chiffré inline)
-├── ansible.cfg                # Configuration Ansible (vault_password_file, plugins d'inventaire)
-├── requirements.txt           # Dépendances Python (pynetbox, etc.)
-├── requirements.yml           # Collections Ansible (netbox.netbox, fortinet.fortios)
-├── .vault_pass                # Mot de passe du vault (local uniquement, jamais commité)
+├── .github/workflows/          # Pipelines CI/CD GitHub Actions
+│   ├── backup.yml              # Backup FortiGate (manuel + planifié)
+│   └── sync_hostname.yml       # Synchronisation hostname (manuel uniquement)
+├── backup_reports/             # Rapports de backup horodatés (généré, non versionné)
+├── local_backups/              # Sauvegardes de configuration par device (généré, non versionné)
+├── group_vars/all/vault.yml    # Secrets chiffrés (token FortiOS, identifiants SSH)
+├── netbox_inventory.yml        # Inventaire dynamique NetBox (token NetBox chiffré inline)
+├── ansible.cfg                 # Configuration Ansible (vault_password_file, plugins d'inventaire)
+├── requirements.txt            # Dépendances Python (pynetbox, etc.)
+├── requirements.yml            # Collections Ansible (netbox.netbox, fortinet.fortios)
+├── .vault_pass                 # Mot de passe du vault (local uniquement, jamais commité)
 ├── .gitignore
-└── *.yml                      # Playbooks (voir ci-dessous)
+├── backup_playbook.yml
+├── sync_hostname_playbook.yml
+└── system_status_playbook.yml
 ```
 
 ## Inventaire dynamique
@@ -114,26 +118,31 @@ Les playbooks ciblent généralement le groupe `device_roles_fw` pour s'applique
 | Playbook | Rôle |
 |---|---|
 | `system_status_playbook.yml` | Vérifie la connectivité et récupère le statut système d'un FortiGate (test de connexion) |
-| `sync_hostname_playbook.yml` | Aligne le hostname réel du FortiGate sur le nom du device défini dans NetBox (NetBox = source de vérité) |
+| `sync_hostname_playbook.yml` | Aligne le hostname réel du FortiGate sur le nom du device défini dans NetBox (NetBox = source de vérité). Tolérant aux équipements injoignables : le rapport indique "🔴 Injoignable" sans faire échouer le run |
 | `backup_playbook.yml` | Sauvegarde multi-device de la configuration FortiGate, avec rétention automatique (90 jours) et rapport horodaté |
 
-Chaque playbook génère un rapport dans `backup_reports/` (pour le backup) résumant le statut par équipement.
+Les playbooks `backup_playbook.yml` et `sync_hostname_playbook.yml` génèrent chacun un rapport horodaté dans `backup_reports/` résumant le statut par équipement.
 
 ### Exécution manuelle
 
 ```bash
 ansible-playbook -i netbox_inventory.yml backup_playbook.yml
+ansible-playbook -i netbox_inventory.yml sync_hostname_playbook.yml
+ansible-playbook -i netbox_inventory.yml system_status_playbook.yml
 ```
 
-## Pipeline CI/CD (GitHub Actions)
+## Pipelines CI/CD (GitHub Actions)
 
-Le workflow `.github/workflows/backup.yml` automatise le backup :
+| Workflow | Playbook exécuté | Déclenchement |
+|---|---|---|
+| `.github/workflows/backup.yml` | `backup_playbook.yml` | Manuel (`workflow_dispatch`) + planifié (cron quotidien) |
+| `.github/workflows/sync_hostname.yml` | `sync_hostname_playbook.yml` | Manuel uniquement (`workflow_dispatch`) |
 
-- **Déclenchement** : manuel (`workflow_dispatch`) ou planifié (cron quotidien)
+Caractéristiques communes aux deux pipelines :
 - **Runner** : self-hosted (réutilise l'environnement Python/Ansible déjà en place sur `~/ansible-projects/venv`)
-- **Secret requis** : `ANSIBLE_VAULT_PASSWORD` (contenu de `.vault_pass`, à configurer dans *Settings → Secrets and variables → Actions*)
-- **Stockage** : les sauvegardes et rapports sont écrits à un **chemin absolu fixe** sur le serveur (`/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/`), volontairement en dehors du workspace éphémère du runner — `actions/checkout` nettoie ce workspace à chaque run (`git clean -ffdx`), ce qui effacerait les sauvegardes précédentes si elles y étaient stockées.
-- Les artefacts de backup sont également uploadés via `actions/upload-artifact` pour consultation depuis l'interface GitHub.
+- **Secret requis** : `ANSIBLE_VAULT_PASSWORD` (contenu de `.vault_pass`, à configurer dans *Settings → Secrets and variables → Actions*), écrit dans un fichier temporaire au début du job puis supprimé en fin de run
+- **Stockage** : les sauvegardes et rapports sont écrits à un **chemin absolu fixe** sur le serveur (`/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/`), volontairement en dehors du workspace éphémère du runner — `actions/checkout` nettoie ce workspace à chaque run (`git clean -ffdx`), ce qui effacerait les rapports précédents si stockés là
+- Les rapports/artefacts sont également uploadés via `actions/upload-artifact` pour consultation depuis l'interface GitHub
 
 ### Configuration du secret GitHub
 
