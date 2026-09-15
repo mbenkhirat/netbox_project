@@ -1,6 +1,6 @@
-# NetBox Project — NetBox comme source de vérité pour FortiGate
+# NetBox Project — NetBox as Source of Truth for FortiGate
 
-Ce projet utilise **NetBox** comme source de vérité (Source of Truth) pour piloter la configuration et les opérations sur des pare-feu **FortiGate**, via **Ansible**. L'inventaire des équipements n'est pas géré à la main : il est récupéré dynamiquement depuis NetBox à chaque exécution.
+This project uses **NetBox** as the Source of Truth to drive configuration and operations on **FortiGate** firewalls, via **Ansible**. The device inventory is not managed manually — it's dynamically retrieved from NetBox on every run.
 
 ## Architecture
 
@@ -8,29 +8,29 @@ Ce projet utilise **NetBox** comme source de vérité (Source of Truth) pour pil
 NetBox (Source of Truth)
       │
       ▼
-Inventaire dynamique Ansible (netbox.netbox.nb_inventory)
+Ansible dynamic inventory (netbox.netbox.nb_inventory)
       │
       ▼
-Playbooks Ansible ──► FortiGate (API REST FortiOS)
+Ansible playbooks ──► FortiGate (FortiOS REST API)
       │
       ▼
-GitHub Actions (CI/CD, runner self-hosted)
+GitHub Actions (CI/CD, self-hosted runner)
 ```
 
-- **NetBox** héberge les informations de référence : sites, rôles, types d'équipements, IPs.
-- **L'inventaire dynamique** (`netbox_inventory.yml`) interroge l'API NetBox à chaque run et génère automatiquement les groupes Ansible (par site, rôle, fabricant, type d'équipement).
-- **Les playbooks** consomment cet inventaire pour agir sur les FortiGate réels (lecture de statut, synchronisation de configuration, sauvegarde).
-- **GitHub Actions**, sur un runner self-hosted, automatise l'exécution planifiée et à la demande.
+- **NetBox** holds the reference data: sites, roles, device types, IPs.
+- **The dynamic inventory** (`netbox_inventory.yml`) queries the NetBox API on every run and automatically generates Ansible groups (by site, role, manufacturer, device type).
+- **Playbooks** consume this inventory to act on real FortiGate devices (status checks, config synchronization, backups).
+- **GitHub Actions**, on a self-hosted runner, automates scheduled and on-demand execution.
 
-## Prérequis
+## Prerequisites
 
-- Python 3.12 (⚠️ Python 3.14 provoque des incompatibilités connues avec `pytz` et le plugin d'inventaire — éviter)
-- Ansible + environnement virtuel dédié
-- Accès réseau à l'instance NetBox et aux FortiGate cibles
-- Un serveur NetBox déjà opérationnel avec :
-  - Le(s) FortiGate modélisé(s) (Manufacturer, Device Type, Device, IP primaire)
-  - Un token API v2 (Bearer) avec les droits nécessaires
-- Un compte API FortiOS dédié sur chaque FortiGate (profil d'accès approprié, token généré via `execute api-user generate-key`)
+- Python 3.12 (⚠️ Python 3.14 causes known incompatibilities with `pytz` and the inventory plugin — avoid it)
+- Ansible + a dedicated virtual environment
+- Network access to the NetBox instance and target FortiGate devices
+- A running NetBox instance with:
+  - The FortiGate(s) already modeled (Manufacturer, Device Type, Device, primary IP)
+  - A v2 (Bearer) API token with the required permissions
+- A dedicated FortiOS API account on each FortiGate (appropriate access profile, token generated via `execute api-user generate-key`)
 
 ## Installation
 
@@ -45,26 +45,26 @@ pip install -r requirements.txt
 ansible-galaxy collection install -r requirements.yml
 ```
 
-## Gestion des secrets (Ansible Vault)
+## Secrets Management (Ansible Vault)
 
-Les tokens API (NetBox et FortiOS) ne sont **jamais** stockés en clair. Ils sont chiffrés via Ansible Vault.
+API tokens (NetBox and FortiOS) are **never** stored in plaintext. They are encrypted via Ansible Vault.
 
-### Initialisation locale
+### Local initialization
 
 ```bash
 openssl rand -base64 32 > .vault_pass
 echo ".vault_pass" >> .gitignore
 ```
 
-### Stockage des secrets
+### Storing secrets
 
-Le token NetBox est chiffré directement dans `netbox_inventory.yml` via le tag YAML `!vault` (nécessaire car les `group_vars` classiques ne se résolvent pas correctement dans le contexte du plugin d'inventaire) :
+The NetBox token is encrypted directly inside `netbox_inventory.yml` using the YAML `!vault` tag (necessary because standard `group_vars` don't resolve correctly in the inventory plugin's execution context):
 
 ```bash
-ansible-vault encrypt_string 'TON_TOKEN_NETBOX' --name 'netbox_token'
+ansible-vault encrypt_string 'YOUR_NETBOX_TOKEN' --name 'netbox_token'
 ```
 
-Le token FortiOS (et les identifiants SSH si utilisés) sont stockés dans `group_vars/all/vault.yml` :
+The FortiOS token (and SSH credentials, if used) are stored in `group_vars/all/vault.yml`:
 
 ```bash
 ansible-vault edit group_vars/all/vault.yml
@@ -74,57 +74,57 @@ ansible-vault edit group_vars/all/vault.yml
 fortios_token: "nbt_xxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
-`ansible.cfg` référence automatiquement `.vault_pass`, donc aucune option supplémentaire n'est nécessaire lors des exécutions locales.
+`ansible.cfg` automatically references `.vault_pass`, so no extra flags are needed for local runs.
 
-⚠️ **`.vault_pass` ne doit jamais être commité** — vérifié dans `.gitignore`.
+⚠️ **`.vault_pass` must never be committed** — verified in `.gitignore`.
 
-## Structure du projet
+## Project Structure
 
 ```
 netbox_project/
-├── .github/workflows/          # Pipelines CI/CD GitHub Actions
-│   ├── backup.yml              # Backup FortiGate (manuel + planifié)
-│   └── sync_hostname.yml       # Synchronisation hostname (manuel uniquement)
-├── backup_reports/             # Rapports de backup horodatés (généré, non versionné)
-├── local_backups/              # Sauvegardes de configuration par device (généré, non versionné)
-├── sync_hostname_reports/      # Rapport Synchronisation hostname par device (généré, non versionné)
-├── group_vars/all/vault.yml    # Secrets chiffrés (token FortiOS, identifiants SSH)
-├── netbox_inventory.yml        # Inventaire dynamique NetBox (token NetBox chiffré inline)
-├── ansible.cfg                 # Configuration Ansible (vault_password_file, plugins d'inventaire)
-├── requirements.txt            # Dépendances Python (pynetbox, etc.)
-├── requirements.yml            # Collections Ansible (netbox.netbox, fortinet.fortios)
-├── .vault_pass                 # Mot de passe du vault (local uniquement, jamais commité)
+├── .github/workflows/          # GitHub Actions CI/CD pipelines
+│   ├── backup.yml              # FortiGate backup (manual + scheduled)
+│   └── sync_hostname.yml       # Hostname sync (manual only)
+├── backup_reports/             # Timestamped backup reports (generated, not versioned)
+├── local_backups/              # Per-device configuration backups (generated, not versioned)
+├── sync_hostname_reports/      # Timestamped hostname sync reports (generated, not versioned)
+├── group_vars/all/vault.yml    # Encrypted secrets (FortiOS token, SSH credentials)
+├── netbox_inventory.yml        # NetBox dynamic inventory (NetBox token encrypted inline)
+├── ansible.cfg                 # Ansible configuration (vault_password_file, inventory plugins)
+├── requirements.txt            # Python dependencies (pynetbox, etc.)
+├── requirements.yml            # Ansible collections (netbox.netbox, fortinet.fortios)
+├── .vault_pass                 # Vault password (local only, never committed)
 ├── .gitignore
 ├── backup_playbook.yml
 ├── sync_hostname_playbook.yml
 └── system_status_playbook.yml
 ```
 
-## Inventaire dynamique
+## Dynamic Inventory
 
 ```bash
 ansible-inventory -i netbox_inventory.yml --graph
 ```
 
-Groupement automatique par :
-- `sites` (ex. `sites_ken`)
-- `device_roles` (ex. `device_roles_fw`)
-- `manufacturers` (ex. `manufacturers_fortinet`)
-- `device_types` (ex. `device_types_fortinet-fg-100f`)
+Automatic grouping by:
+- `sites` (e.g. `sites_ken`)
+- `device_roles` (e.g. `device_roles_fw`)
+- `manufacturers` (e.g. `manufacturers_fortinet`)
+- `device_types` (e.g. `device_types_fortinet-fg-100f`)
 
-Les playbooks ciblent généralement le groupe `device_roles_fw` pour s'appliquer à tous les FortiGate présents dans NetBox, sans liste statique à maintenir.
+Playbooks typically target the `device_roles_fw` group to act on every FortiGate present in NetBox, with no static list to maintain.
 
-## Playbooks disponibles
+## Available Playbooks
 
-| Playbook | Rôle |
+| Playbook | Purpose |
 |---|---|
-| `system_status_playbook.yml` | Vérifie la connectivité et récupère le statut système d'un FortiGate (test de connexion) |
-| `sync_hostname_playbook.yml` | Aligne le hostname réel du FortiGate sur le nom du device défini dans NetBox (NetBox = source de vérité). Tolérant aux équipements injoignables : le rapport indique "🔴 Injoignable" sans faire échouer le run |
-| `backup_playbook.yml` | Sauvegarde multi-device de la configuration FortiGate, avec rétention automatique (90 jours) et rapport horodaté |
+| `system_status_playbook.yml` | Checks connectivity and retrieves system status from a FortiGate (connection test) |
+| `sync_hostname_playbook.yml` | Aligns the actual FortiGate hostname with the device name defined in NetBox (NetBox as source of truth). Tolerant of unreachable devices: the report shows "🔴 Unreachable" without failing the run |
+| `backup_playbook.yml` | Multi-device FortiGate configuration backup, with automatic retention (90 days) and a timestamped report |
 
-Les playbooks `backup_playbook.yml` et `sync_hostname_playbook.yml` génèrent chacun un rapport horodaté dans `backup_reports/` résumant le statut par équipement.
+Both `backup_playbook.yml` and `sync_hostname_playbook.yml` generate a timestamped report in `backup_reports/` summarizing the status per device.
 
-### Exécution manuelle
+### Manual execution
 
 ```bash
 ansible-playbook -i netbox_inventory.yml backup_playbook.yml
@@ -132,34 +132,34 @@ ansible-playbook -i netbox_inventory.yml sync_hostname_playbook.yml
 ansible-playbook -i netbox_inventory.yml system_status_playbook.yml
 ```
 
-## Pipelines CI/CD (GitHub Actions)
+## CI/CD Pipelines (GitHub Actions)
 
-| Workflow | Playbook exécuté | Déclenchement |
+| Workflow | Playbook run | Trigger |
 |---|---|---|
-| `.github/workflows/backup.yml` | `backup_playbook.yml` | Manuel (`workflow_dispatch`) + planifié (cron quotidien) |
-| `.github/workflows/sync_hostname.yml` | `sync_hostname_playbook.yml` | Manuel uniquement (`workflow_dispatch`) |
+| `.github/workflows/backup.yml` | `backup_playbook.yml` | Manual (`workflow_dispatch`) + scheduled (daily cron) |
+| `.github/workflows/sync_hostname.yml` | `sync_hostname_playbook.yml` | Manual only (`workflow_dispatch`) |
 
-Caractéristiques communes aux deux pipelines :
-- **Runner** : self-hosted (réutilise l'environnement Python/Ansible déjà en place sur `~/ansible-projects/venv`)
-- **Secret requis** : `ANSIBLE_VAULT_PASSWORD` (contenu de `.vault_pass`, à configurer dans *Settings → Secrets and variables → Actions*), écrit dans un fichier temporaire au début du job puis supprimé en fin de run
-- **Stockage** : les sauvegardes et rapports sont écrits à un **chemin absolu fixe** sur le serveur (`/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/`), volontairement en dehors du workspace éphémère du runner — `actions/checkout` nettoie ce workspace à chaque run (`git clean -ffdx`), ce qui effacerait les rapports précédents si stockés là
-- Les rapports/artefacts sont également uploadés via `actions/upload-artifact` pour consultation depuis l'interface GitHub
+Shared characteristics of both pipelines:
+- **Runner**: self-hosted (reuses the existing Python/Ansible environment at `~/ansible-projects/venv`)
+- **Required secret**: `ANSIBLE_VAULT_PASSWORD` (content of `.vault_pass`, configured under *Settings → Secrets and variables → Actions*), written to a temporary file at job start and removed at the end of the run
+- **Storage**: backups and reports are written to a **fixed absolute path** on the server (`/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/`), deliberately outside the runner's ephemeral workspace — `actions/checkout` wipes that workspace on every run (`git clean -ffdx`), which would delete previous reports if stored there
+- Reports/artifacts are also uploaded via `actions/upload-artifact` for review from the GitHub interface
 
-### Configuration du secret GitHub
+### Configuring the GitHub secret
 
-1. `cat .vault_pass` en local pour récupérer la valeur exacte
+1. Run `cat .vault_pass` locally to get the exact value
 2. GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**
-3. Nom : `ANSIBLE_VAULT_PASSWORD` — coller la valeur sans espace ni ligne vide ajoutée
+3. Name: `ANSIBLE_VAULT_PASSWORD` — paste the value with no extra whitespace or blank lines
 
-## Notes de compatibilité connues
+## Known Compatibility Notes
 
-- **Python 3.14** casse le plugin d'inventaire NetBox (`pytz` non résolu) — utiliser Python 3.12.
-- Le module `fortios_configuration_fact` interroge l'API **CMDB** ; pour les statuts en temps réel (ex. `system_status`), utiliser `fortios_monitor_fact` (API **Monitor**).
-- L'upload de firmware volumineux (>100 Mo) via l'API Monitor FortiOS (`upgrade.system.firmware`, source `upload`) est instable (`Broken pipe`) — privilégier la source `fortiguard` si le FortiGate a un accès Internet sortant, ou un transfert TFTP sinon.
-- Les tokens API NetBox v2 utilisent le schéma `Bearer <clé>.<jeton>` ; le connecteur d'inventaire attend un bloc structuré (`token: {type: Bearer, value: ...}`), pas une chaîne brute.
+- **Python 3.14** breaks the NetBox inventory plugin (`pytz` fails to resolve) — use Python 3.12.
+- The `fortios_configuration_fact` module queries the **CMDB** API; for real-time status (e.g. `system_status`), use `fortios_monitor_fact` (**Monitor** API) instead.
+- Uploading large firmware files (>100 MB) via the FortiOS Monitor API (`upgrade.system.firmware`, `source: upload`) is unreliable (`Broken pipe`) — prefer the `fortiguard` source if the FortiGate has outbound Internet access, or a TFTP transfer otherwise.
+- NetBox v2 API tokens use the `Bearer <key>.<token>` scheme; the inventory connector expects a structured block (`token: {type: Bearer, value: ...}`), not a raw string.
 
-## Sécurité
+## Security
 
-- Aucun secret n'est stocké en clair dans le dépôt (vérifié via `.gitignore` : `.vault_pass`, `*.env`, `vault.yml` non chiffré, fichiers firmware `.out`).
-- Le token FortiOS et le token NetBox sont scindés par usage (Vault inline pour l'inventaire, `group_vars` pour les playbooks).
-- Rotation recommandée des tokens API en cas d'exposition accidentelle (ex. collée dans un terminal partagé ou un ticket).
+- No secret is stored in plaintext in the repository (enforced via `.gitignore`: `.vault_pass`, `*.env`, unencrypted `vault.yml`, `.out` firmware files).
+- FortiOS and NetBox tokens are split by usage (inline Vault for the inventory, `group_vars` for playbooks).
+- Rotate API tokens if accidentally exposed (e.g. pasted into a shared terminal or a ticket).
