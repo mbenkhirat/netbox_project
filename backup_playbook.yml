@@ -4,10 +4,10 @@
   gather_facts: false
   vars:
     fortios_access_token: "{{ fortios_token }}"
-    # local_backup_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/local_backups"
-    # reports_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/backup_reports"
-    local_backup_dir: "{{ playbook_dir }}/local_backups"
-    reports_dir: "{{ playbook_dir }}/backup_reports"
+    local_backup_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/local_backups"
+    reports_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/backup_reports"
+    # local_backup_dir: "{{ playbook_dir }}/local_backups"
+    # reports_dir: "{{ playbook_dir }}/backup_reports"
     retention_days: 90  # 3-month retention (~90 days)
 
   tasks:
