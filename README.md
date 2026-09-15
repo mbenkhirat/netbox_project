@@ -87,6 +87,7 @@ netbox_project/
 │   └── sync_hostname.yml       # Synchronisation hostname (manuel uniquement)
 ├── backup_reports/             # Rapports de backup horodatés (généré, non versionné)
 ├── local_backups/              # Sauvegardes de configuration par device (généré, non versionné)
+├── sync_hostname_reports/      # Rapport Synchronisation hostname par device (généré, non versionné)
 ├── group_vars/all/vault.yml    # Secrets chiffrés (token FortiOS, identifiants SSH)
 ├── netbox_inventory.yml        # Inventaire dynamique NetBox (token NetBox chiffré inline)
 ├── ansible.cfg                 # Configuration Ansible (vault_password_file, plugins d'inventaire)
