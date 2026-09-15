@@ -11,7 +11,7 @@
     ansible_httpapi_port: 443
     ansible_network_os: fortinet.fortios.fortios
     vdom: "root"
-    reports_dir: "/home/mbenkhirat/ansible-projects/forti-upgrade/reports/sync_hostname"
+    reports_dir: "/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/sync_hostname_reports"
 
   tasks:
     - name: Gather local system date

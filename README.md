@@ -115,14 +115,14 @@ Les playbooks ciblent généralement le groupe `device_roles_fw` pour s'applique
 |---|---|
 | `system_status_playbook.yml` | Vérifie la connectivité et récupère le statut système d'un FortiGate (test de connexion) |
 | `sync_hostname_playbook.yml` | Aligne le hostname réel du FortiGate sur le nom du device défini dans NetBox (NetBox = source de vérité) |
-| `new_backup_playbook.yml` | Sauvegarde multi-device de la configuration FortiGate, avec rétention automatique (90 jours) et rapport horodaté |
+| `backup_playbook.yml` | Sauvegarde multi-device de la configuration FortiGate, avec rétention automatique (90 jours) et rapport horodaté |
 
 Chaque playbook génère un rapport dans `backup_reports/` (pour le backup) résumant le statut par équipement.
 
 ### Exécution manuelle
 
 ```bash
-ansible-playbook -i netbox_inventory.yml new_backup_playbook.yml
+ansible-playbook -i netbox_inventory.yml backup_playbook.yml
 ```
 
 ## Pipeline CI/CD (GitHub Actions)
