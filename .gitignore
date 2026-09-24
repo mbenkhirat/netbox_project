@@ -1,4 +1,5 @@
 .vault_pass
+.venv
 local_backups
 backup_reports
 sync_hostname_reports
