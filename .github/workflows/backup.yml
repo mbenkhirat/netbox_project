@@ -15,12 +15,12 @@ jobs:
 
       - name: Install/update Python dependencies
         run: |
-          source ~/ansible-projects/netbox_project/.venv/bin/activate
+          source ~/ansible-projects/forti-automation/netbox_project/.venv/bin/activate
           pip install -r requirements.txt
 
       - name: Install Ansible collections
         run: |
-          source ~/ansible-projects/netbox_project/.venv/bin/activate
+          source ~/ansible-projects/forti-automation/netbox_project/.venv/bin/activate
           ansible-galaxy collection install -r requirements.yml
 
       - name: Write vault password
@@ -28,7 +28,7 @@ jobs:
 
       - name: Run backup playbook
         run: |
-          source ~/ansible-projects/netbox_project/.venv/bin/activate
+          source ~/ansible-projects/forti-automation/netbox_project/.venv/bin/activate
           ansible-playbook -i netbox_inventory.yml backup_playbook.yml --vault-password-file .vault_pass
 
       - name: Cleanup vault password
