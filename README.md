@@ -24,7 +24,7 @@ GitHub Actions (CI/CD, self-hosted runner)
 
 ## Prerequisites
 
-- Python 3.12 (⚠️ Python 3.14 causes known incompatibilities with `pytz` and the inventory plugin — avoid it)
+- Python 3.14
 - Ansible + a dedicated virtual environment
 - Network access to the NetBox instance and target FortiGate devices
 - A running NetBox instance with:

@@ -1,5 +1,5 @@
 plugin: netbox.netbox.nb_inventory
-api_endpoint: http://192.168.239.129:8000
+api_endpoint: http://192.168.52.130:8000
 token:
   type: Bearer
   value: !vault |
