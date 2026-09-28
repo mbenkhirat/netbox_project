@@ -1,4 +1,4 @@
-# NetBox as SoT — Dynamic Ansible Inventory for Network Automation (test)
+# NetBox as SoT — Dynamic Ansible Inventory for Network Automation
 
 This project demonstrates using **NetBox as the Source of Truth (SoT)** to drive network automation via **Ansible**, through a **dynamic inventory** mechanism. Rather than maintaining a static device list, Ansible queries NetBox on every run to pull the up-to-date inventory — devices, sites, roles — directly from the authoritative network database. The current implementation targets **FortiGate** firewalls via the FortiOS REST API, but the architecture (NetBox → dynamic inventory → playbooks) is designed to extend to other device types.
 
@@ -24,7 +24,7 @@ GitHub Actions (CI/CD, self-hosted runner)
 
 ## Prerequisites
 
-- Python 3.14
+- Python 3.12+ (tested working with 3.14, provided `pytz` is installed — see `requirements.txt`)
 - Ansible + a dedicated virtual environment
 - Network access to the NetBox instance and target FortiGate devices
 - A running NetBox instance with:
@@ -91,7 +91,7 @@ netbox_project/
 ├── group_vars/all/vault.yml    # Encrypted secrets (FortiOS token, SSH credentials)
 ├── netbox_inventory.yml        # NetBox dynamic inventory (NetBox token encrypted inline)
 ├── ansible.cfg                 # Ansible configuration (vault_password_file, inventory plugins)
-├── requirements.txt            # Python dependencies (pynetbox, etc.)
+├── requirements.txt            # Python dependencies (pynetbox, pytz, etc.)
 ├── requirements.yml            # Ansible collections (netbox.netbox, fortinet.fortios)
 ├── .vault_pass                 # Vault password (local only, never committed)
 ├── .gitignore
@@ -122,7 +122,7 @@ Playbooks typically target the `device_roles_fw` group to act on every FortiGate
 | `sync_hostname_playbook.yml` | Aligns the actual FortiGate hostname with the device name defined in NetBox (NetBox as source of truth). Tolerant of unreachable devices: the report shows "🔴 Unreachable" without failing the run |
 | `backup_playbook.yml` | Multi-device FortiGate configuration backup, with automatic retention (90 days) and a timestamped report |
 
-Both `backup_playbook.yml` and `sync_hostname_playbook.yml` generate a timestamped report in `backup_reports/` summarizing the status per device.
+`backup_playbook.yml` writes its reports to `backup_reports/`, and `sync_hostname_playbook.yml` writes its own reports to `sync_hostname_reports/` — each playbook keeps its reports in a separate, dedicated folder.
 
 ### Manual execution
 
@@ -153,7 +153,7 @@ Shared characteristics of both pipelines:
 
 ## Known Compatibility Notes
 
-- **Python 3.14** breaks the NetBox inventory plugin (`pytz` fails to resolve) — use Python 3.12.
+- The `netbox.netbox` inventory plugin requires `pytz`, which isn't a hard dependency pulled in automatically by the collection — make sure it's listed in `requirements.txt` (already the case in this repo) regardless of the Python version in use.
 - The `fortios_configuration_fact` module queries the **CMDB** API; for real-time status (e.g. `system_status`), use `fortios_monitor_fact` (**Monitor** API) instead.
 - Uploading large firmware files (>100 MB) via the FortiOS Monitor API (`upgrade.system.firmware`, `source: upload`) is unreliable (`Broken pipe`) — prefer the `fortiguard` source if the FortiGate has outbound Internet access, or a TFTP transfer otherwise.
 - NetBox v2 API tokens use the `Bearer <key>.<token>` scheme; the inventory connector expects a structured block (`token: {type: Bearer, value: ...}`), not a raw string.
