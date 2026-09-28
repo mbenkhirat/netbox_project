@@ -71,7 +71,7 @@ ansible-vault edit group_vars/all/vault.yml
 ```
 
 ```yaml
-fortios_token: "nbt_xxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+fortios_token: "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 `ansible.cfg` automatically references `.vault_pass`, so no extra flags are needed for local runs.
