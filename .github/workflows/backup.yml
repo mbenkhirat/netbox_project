@@ -41,6 +41,6 @@ jobs:
         with:
           name: fortigate-backups-${{ github.run_number }}
           path: |
-            local_backups/
-            backup_reports/
+            ~/ansible-projects/.../local_backups/
+            ~/ansible-projects/.../backup_reports/
           retention-days: 90
