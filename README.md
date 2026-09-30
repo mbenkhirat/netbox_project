@@ -143,6 +143,7 @@ Shared characteristics of both pipelines:
 - **Runner**: self-hosted (reuses the existing Python/Ansible environment at `~/ansible-projects/venv`)
 - **Required secret**: `ANSIBLE_VAULT_PASSWORD` (content of `.vault_pass`, configured under *Settings → Secrets and variables → Actions*), written to a temporary file at job start and removed at the end of the run
 - **Storage**: backups and reports are written to a **fixed absolute path** on the server (`/home/mbenkhirat/ansible-projects/forti-automation/netbox_project/`), deliberately outside the runner's ephemeral workspace — `actions/checkout` wipes that workspace on every run (`git clean -ffdx`), which would delete previous reports if stored there
+- **Failure handling**: `backup_playbook.yml` processes every device even if one fails to back up (no single point of failure), but the job is explicitly marked as failed at the end of the run if any device backup was unsuccessful — ensuring silent partial failures always trigger a visible GitHub notification rather than going unnoticed in a "successful" run.
 - Reports/artifacts are also uploaded via `actions/upload-artifact` for review from the GitHub interface
 
 ### Configuring the GitHub secret
