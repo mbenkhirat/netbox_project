@@ -127,3 +127,15 @@
         mode: '0644'
       delegate_to: localhost
       run_once: true
+
+    - name: Fail the job if any device backup failed
+      ansible.builtin.fail:
+        msg: "Un ou plusieurs équipements ont échoué au backup — voir le rapport ci-dessus."
+      when: >
+        ansible_play_hosts
+        | map('extract', hostvars, 'backup_status')
+        | select('search', '❌')
+        | list
+        | length > 0
+      delegate_to: localhost
+      run_once: true
