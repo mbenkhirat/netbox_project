@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          source .venv/bin/activate
+          source ~/ansible-projects/venv/bin/activate
           ansible-playbook deploy_object_playbook.yml --syntax-check
           ansible-lint deploy_object_playbook.yml
           ansible-playbook -i netbox_inventory.yml deploy_object_playbook.yml --check --diff
