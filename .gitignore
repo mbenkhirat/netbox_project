@@ -3,3 +3,4 @@
 local_backups
 backup_reports
 sync_hostname_reports
+deploy_reports

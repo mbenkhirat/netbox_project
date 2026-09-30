@@ -19,3 +19,4 @@ group_by:
   - device_roles
   - manufacturers
   - device_types
+  - tags

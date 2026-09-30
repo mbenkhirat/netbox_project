@@ -1,0 +1,35 @@
+name: deploy-object
+on:
+  pull_request:
+    paths: ["deploy_object_playbook.yml", "vars/**"]
+  push:
+    branches: [main]
+    paths: ["deploy_object_playbook.yml", "vars/**"]
+  workflow_dispatch:
+
+jobs:
+  validate:            # PR : contrôles + prévisualisation, aucun changement
+    if: github.event_name == 'pull_request'
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          source .venv/bin/activate
+          ansible-playbook deploy_object_playbook.yml --syntax-check
+          ansible-lint deploy_object_playbook.yml
+          ansible-playbook -i netbox_inventory.yml deploy_object_playbook.yml --check --diff
+
+  apply:               # après fusion : application + vérification
+    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted]
+    environment: lab   # approbation manuelle si configurée
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+            source .venv/bin/activate
+            ansible-playbook -i netbox_inventory.yml deploy_object_playbook.yml --diff
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+            name: deploy-report
+            path: deploy_reports/
