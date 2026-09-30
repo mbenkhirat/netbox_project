@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           source ~/ansible-projects/venv/bin/activate
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .vault_pass
           ansible-playbook deploy_object_playbook.yml --syntax-check
           ansible-lint deploy_object_playbook.yml
           ansible-playbook -i netbox_inventory.yml deploy_object_playbook.yml --check --diff --vault-password-file .vault_pass
@@ -27,6 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
             source ~/ansible-projects/venv/bin/activate
+            echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .vault_pass
             ansible-playbook -i netbox_inventory.yml deploy_object_playbook.yml --diff --vault-password-file .vault_pass
       - uses: actions/upload-artifact@v4
         if: always()
