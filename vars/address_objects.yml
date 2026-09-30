@@ -1,6 +1,0 @@
----
-object_state: present        # present | absent (retour arrière)
-address_objects:
-  - name: LAB-TEST-NET
-    subnet: 10.99.0.0 255.255.255.0
-    comment: managed-by-github-actions
