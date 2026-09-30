@@ -35,12 +35,3 @@ jobs:
         if: always()
         run: rm -f .vault_pass
 
-      - name: Upload backup artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fortigate-backups-${{ github.run_number }}
-          path: |
-            /home/mbenkhirat/ansible-projects/forti-automation/netbox_project/local_backups
-            /home/mbenkhirat/ansible-projects/forti-automation/netbox_project/backup_reports
-          retention-days: 90
