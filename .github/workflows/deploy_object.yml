@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-            source .venv/bin/activate
+            source ~/ansible-projects/venv/bin/activate
             ansible-playbook -i netbox_inventory.yml deploy_object_playbook.yml --diff
       - uses: actions/upload-artifact@v4
         if: always()
