@@ -1,0 +1,273 @@
+{
+    "hostname": "FG01",
+    "policies": [
+        {
+            "1_week_ipv4": {
+                "asic_bytes": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "asic_packets": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "bytes": [
+                    0,
+                    0,
+                    141733,
+                    88977934,
+                    739212,
+                    0,
+                    0,
+                    0
+                ],
+                "hit_count": [
+                    0,
+                    0,
+                    79,
+                    1674,
+                    399,
+                    0,
+                    0,
+                    0
+                ],
+                "packets": [
+                    0,
+                    0,
+                    591,
+                    79350,
+                    9053,
+                    0,
+                    0,
+                    0
+                ],
+                "software_bytes": [
+                    0,
+                    0,
+                    141733,
+                    88977934,
+                    739212,
+                    0,
+                    0,
+                    0
+                ],
+                "software_packets": [
+                    0,
+                    0,
+                    591,
+                    79350,
+                    9053,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "active_sessions": 0,
+            "asic_bytes": 0,
+            "asic_packets": 0,
+            "bytes": 89858879,
+            "creation_time": 1790607035,
+            "first_used": 1790095365,
+            "hit_count": 2152,
+            "last_used": 1790257725,
+            "packets": 88994,
+            "policyid": 1,
+            "session_count": 0,
+            "session_first_used": 1790095365,
+            "session_last_used": 1790239803,
+            "software_bytes": 89858879,
+            "software_packets": 88994,
+            "uuid": "7b9a3be8-b176-51f1-058f-15dc5d455b87"
+        },
+        {
+            "1_week_ipv4": {
+                "asic_bytes": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "asic_packets": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "bytes": [
+                    0,
+                    0,
+                    0,
+                    2309047,
+                    1380,
+                    0,
+                    0,
+                    0
+                ],
+                "hit_count": [
+                    0,
+                    0,
+                    0,
+                    594,
+                    15,
+                    0,
+                    0,
+                    0
+                ],
+                "packets": [
+                    0,
+                    0,
+                    0,
+                    3015,
+                    30,
+                    0,
+                    0,
+                    0
+                ],
+                "software_bytes": [
+                    0,
+                    0,
+                    0,
+                    2309047,
+                    1380,
+                    0,
+                    0,
+                    0
+                ],
+                "software_packets": [
+                    0,
+                    0,
+                    0,
+                    3015,
+                    30,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "active_sessions": 0,
+            "asic_bytes": 0,
+            "asic_packets": 0,
+            "bytes": 2310427,
+            "creation_time": 1790607035,
+            "first_used": 1790166668,
+            "hit_count": 609,
+            "last_used": 1790253605,
+            "packets": 3045,
+            "policyid": 2,
+            "session_count": 0,
+            "session_first_used": 1790167851,
+            "session_last_used": 1790167903,
+            "software_bytes": 2310427,
+            "software_packets": 3045,
+            "uuid": "a9ae10ba-b73c-51f1-0e68-26f636fd631a"
+        },
+        {
+            "1_week_ipv4": {
+                "asic_bytes": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "asic_packets": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "bytes": [
+                    0,
+                    0,
+                    1228,
+                    624,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "hit_count": [
+                    0,
+                    0,
+                    3,
+                    12,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "packets": [
+                    0,
+                    0,
+                    13,
+                    12,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "software_bytes": [
+                    0,
+                    0,
+                    1228,
+                    624,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "software_packets": [
+                    0,
+                    0,
+                    13,
+                    12,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            "active_sessions": 0,
+            "asic_bytes": 0,
+            "asic_packets": 0,
+            "bytes": 1852,
+            "first_used": 1790095249,
+            "hit_count": 15,
+            "last_used": 1790167238,
+            "packets": 25,
+            "policyid": 0,
+            "software_bytes": 1852,
+            "software_packets": 25
+        }
+    ],
+    "serial": "FGVMEVHLGQKQOUE8",
+    "timestamp": "2026-10-01T12:13:19Z",
+    "version": "v7.6.7"
+}

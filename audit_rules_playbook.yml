@@ -1,0 +1,172 @@
+---
+# audit_rules.yml
+# Audit des règles firewall FortiGate : détection des règles jamais utilisées
+# et des règles désactivées, avec historisation multi-run. La détection de
+# reboot (remise à zéro des compteurs) se fait côté audit_analyzer.py par
+# comparaison des hit_count entre runs consécutifs (un hit_count qui diminue
+# signale un reboot), plutôt que via l'uptime.
+
+- name: Audit des règles firewall FortiGate | détection des règles jamais utilisées
+  hosts: device_roles_fw
+  gather_facts: false
+  vars:
+    ansible_connection: local
+    fortios_access_token: "{{ fortios_token }}"
+    audit_base_dir: "{{ playbook_dir }}/reports"
+    history_dir: "{{ audit_base_dir }}/history/{{ inventory_hostname }}"
+    min_age_days: 30              # ne pas flaguer une règle créée récemment
+    min_consecutive_zero_runs: 4  # ex: 4 runs hebdo = 1 mois sans trafic
+
+  tasks:
+
+    - name: Gather local system date
+      ansible.builtin.setup:
+        filter:
+          - "ansible_date_time"
+
+    - name: Ensure history directory exists
+      ansible.builtin.file:
+        path: "{{ history_dir }}"
+        state: directory
+        mode: '0750'
+
+    - name: Get FortiGate system status (serial, version)
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/api/v2/monitor/system/status"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ fortios_access_token }}"
+        validate_certs: false
+        return_content: yes
+      register: system_status
+      no_log: true
+      ignore_errors: true
+
+    - name: Get firewall policies with hit counts
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/api/v2/monitor/firewall/policy"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ fortios_access_token }}"
+        validate_certs: false
+        return_content: yes
+      register: firewall_policies
+      no_log: true
+      when: system_status is success
+      ignore_errors: true
+
+    - name: Get firewall policy config (names, src/dst, service, status)
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/api/v2/cmdb/firewall/policy"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ fortios_access_token }}"
+        validate_certs: false
+        return_content: yes
+      register: firewall_policy_config
+      no_log: true
+      when: system_status is success and firewall_policies is success
+      ignore_errors: true
+
+    - name: Définir le statut d'audit (équipement injoignable ou erreur API)
+      ansible.builtin.set_fact:
+        audit_status: "🔴 Injoignable ou erreur API ({{ system_status.msg | default(firewall_policies.msg) | default(firewall_policy_config.msg) | default('erreur inconnue') }})"
+      when: system_status is failed or firewall_policies is failed or firewall_policy_config is failed
+
+    - name: Build combined run record
+      ansible.builtin.set_fact:
+        run_record:
+          timestamp: "{{ ansible_date_time.iso8601 }}"
+          serial: "{{ system_status.json.serial }}"
+          version: "{{ system_status.json.version }}"
+          hostname: "{{ system_status.json.results.hostname }}"
+          policies: "{{ firewall_policies.json.results }}"
+      when: audit_status is not defined
+
+    - name: Save run snapshot to history
+      ansible.builtin.copy:
+        content: "{{ run_record | to_nice_json }}"
+        dest: "{{ history_dir }}/run_{{ ansible_date_time.iso8601_basic_short }}.json"
+        mode: '0640'
+      when: audit_status is not defined
+
+    - name: Save policy config/names (overwritten each run, used for report readability)
+      ansible.builtin.copy:
+        content: "{{ firewall_policy_config.json.results | to_nice_json }}"
+        dest: "{{ audit_base_dir }}/policy_names_{{ inventory_hostname }}.json"
+        mode: '0640'
+      when: audit_status is not defined
+
+    - name: Run audit analysis across historical runs
+      ansible.builtin.command: >
+        python3 {{ playbook_dir }}/audit_analyzer.py
+        --history-dir {{ history_dir }}
+        --names-file {{ audit_base_dir }}/policy_names_{{ inventory_hostname }}.json
+        --min-age-days {{ min_age_days }}
+        --min-consecutive {{ min_consecutive_zero_runs }}
+        --output {{ audit_base_dir }}/audit_report_{{ inventory_hostname }}.md
+        --device-name {{ inventory_hostname }}
+      register: analysis_result
+      changed_when: false
+      when: audit_status is not defined
+
+    - name: Show analysis summary
+      ansible.builtin.debug:
+        msg: "{{ analysis_result.stdout_lines }}"
+      when: audit_status is not defined
+
+    - name: Définir le statut d'audit (succès)
+      ansible.builtin.set_fact:
+        audit_status: "✅ Audit terminé"
+      when: audit_status is not defined
+
+    - name: Find history snapshots older than 90 days
+      ansible.builtin.find:
+        paths: "{{ history_dir }}"
+        age: "90d"
+        patterns: "run_*.json"
+      register: old_history
+      when: audit_status == "✅ Audit terminé"
+
+    - name: Remove old history snapshots (keep ~3 months of trend data)
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_history.files | default([]) }}"
+      when: audit_status == "✅ Audit terminé"
+
+    - name: Build the global audit status report
+      ansible.builtin.set_fact:
+        report_content: |
+          ==================================================
+                    FIREWALL POLICY AUDIT REPORT
+                   Date: {{ ansible_facts['date_time']['date'] }} {{ ansible_facts['date_time']['time'] }}
+          ==================================================
+          {% for host in ansible_play_hosts %}
+            • {{ "%-25s" | format(host) }} : {{ hostvars[host]['audit_status'] | default('❓ Inconnu') }}
+          {% endfor %}
+          ==================================================
+      run_once: true
+
+    - name: Display the global status report
+      ansible.builtin.debug:
+        msg: "{{ report_content }}"
+      run_once: true
+
+    - name: Save the global status report
+      ansible.builtin.copy:
+        content: "{{ report_content }}"
+        dest: "{{ audit_base_dir }}/audit_status_report_{{ ansible_facts['date_time']['date'] }}_{{ ansible_facts['date_time']['time'] | replace(':','') }}.txt"
+        mode: '0644'
+      run_once: true
+
+    - name: Fail the job if any device audit failed
+      ansible.builtin.fail:
+        msg: "Un ou plusieurs équipements ont échoué à l'audit — voir le rapport ci-dessus."
+      when: >
+        ansible_play_hosts
+        | map('extract', hostvars, 'audit_status')
+        | select('search', '🔴')
+        | list
+        | length > 0
+      run_once: true
