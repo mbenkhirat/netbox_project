@@ -156,7 +156,6 @@ Shared characteristics of both pipelines:
 
 - The `netbox.netbox` inventory plugin requires `pytz`, which isn't a hard dependency pulled in automatically by the collection — make sure it's listed in `requirements.txt` (already the case in this repo) regardless of the Python version in use.
 - The `fortios_configuration_fact` module queries the **CMDB** API; for real-time status (e.g. `system_status`), use `fortios_monitor_fact` (**Monitor** API) instead.
-- Uploading large firmware files (>100 MB) via the FortiOS Monitor API (`upgrade.system.firmware`, `source: upload`) is unreliable (`Broken pipe`) — prefer the `fortiguard` source if the FortiGate has outbound Internet access, or a TFTP transfer otherwise.
 - NetBox v2 API tokens use the `Bearer <key>.<token>` scheme; the inventory connector expects a structured block (`token: {type: Bearer, value: ...}`), not a raw string.
 
 ## Security
